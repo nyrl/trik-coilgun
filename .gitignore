@@ -11,3 +11,18 @@
 *.lai
 *.la
 *.a
+
+# Autotools dynamic files
+/Makefile
+/autom4te.cache
+/build/.deps
+/build/Makefile
+/build/trik-coilgun
+/config.h
+/config.h.in~
+/config.log
+/config.status
+/libtool
+/*-libtool
+/stamp-h1
+
