@@ -4,7 +4,7 @@
 AC_PREREQ([2.65])
 AC_INIT([trik-coilgun], [0.0.1])
 AM_INIT_AUTOMAKE([foreign color-tests -Wall -Werror])
-AC_CONFIG_SRCDIR([src/main.c])
+AC_CONFIG_SRCDIR([src/main.cpp])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
