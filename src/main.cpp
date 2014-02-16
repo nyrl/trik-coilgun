@@ -6,6 +6,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
 #include <getopt.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -30,7 +31,7 @@ class I2CBus
       if (m_busFd == -1)
       {
         ostringstream os;
-        os << "cannot open i2c bus device " << m_busPath;
+        os << "cannot open i2c bus device " << m_busPath << ", error " << errno;
         throw runtime_error(os.str());
       }
     }
@@ -56,10 +57,10 @@ class I2CDevice
     I2CDevice(unsigned _busId, unsigned _deviceId)
      :m_i2cBus(_busId)
     {
-      if (ioctl(m_i2cBus.fd(), I2C_SLAVE, &_deviceId) != 0)
+      if (ioctl(m_i2cBus.fd(), I2C_SLAVE, _deviceId) == -1)
       {
         ostringstream os;
-        os << "cannot select i2c slave device " << _deviceId << ", bus " << m_i2cBus.path();
+        os << "cannot select i2c slave device " << _deviceId << ", bus " << m_i2cBus.path() << ", error " << errno;
         throw runtime_error(os.str());
       }
     }
