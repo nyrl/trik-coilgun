@@ -328,8 +328,8 @@ int main(int _argc, char* const _argv[])
 
   unsigned mspI2cBusId = 0x2;
   unsigned mspI2cDeviceId = 0x48;
-  unsigned mspChargeLevelCmd = 0;
-  unsigned mspDischargeCurrentCmd = 0;
+  unsigned mspChargeLevelCmd = 0x25;
+  unsigned mspDischargeCurrentCmd = 0x24;
   unsigned gpioChargeCtrl = 0;
   unsigned gpioDischargeCtrl = 0;
 
