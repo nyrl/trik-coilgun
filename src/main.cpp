@@ -182,40 +182,36 @@ class TrikCoilGun
       const bool waitCharge = _durationMs == 0;
       const chrono::steady_clock::time_point& elapseAt = startAt + chrono::duration<chrono::steady_clock::rep, chrono::milliseconds::period>(_durationMs);
 
-#if 1
-      cerr << "Preparing for charge" << endl;
+      cerr << "Preparing for charge to level " << _chargeLevel << endl;
       bool charging = false;
-#endif
+
       while (true)
       {
         if (!waitCharge && chrono::steady_clock::now() >= elapseAt)
           break;
 
-        if (m_mspControl.readWord(m_mspCmdChargeLevel) >= _chargeLevel)
+        const unsigned currentChargeLevel = m_mspControl.readWord(m_mspCmdChargeLevel);
+        if (currentChargeLevel >= _chargeLevel)
         {
-#if 1
           if (charging)
-            cerr << "Stop charging" << endl;
+            cerr << "Stop charging at level " << currentChargeLevel << ", target level " << _chargeLevel << endl;
           charging = false;
-#endif
+
           if (waitCharge)
             break;
           m_gpioChargeControl.setValue(0);
         }
         else
         {
-#if 1
           if (!charging)
-            cerr << "Charging" << endl;
+            cerr << "Charging at level " << currentChargeLevel << ", target level " << _chargeLevel << endl;
           charging = true;
-#endif
           m_gpioChargeControl.setValue(1);
         }
         usleep(1000);
       }
-#if 1
+
       cerr << "Charge done" << endl;
-#endif
       m_gpioChargeControl.setValue(0);
     }
 
@@ -226,28 +222,26 @@ class TrikCoilGun
       const bool waitDischarge = _durationMs == 0;
       const chrono::steady_clock::time_point& elapseAt = startAt + chrono::duration<chrono::steady_clock::rep, chrono::milliseconds::period>(_durationMs);
 
-#if 1
-      cerr << "Preparing for discharge" << endl;
-#endif
+      cerr << "Preparing for discharge from level " << m_mspControl.readWord(m_mspCmdChargeLevel)
+           << " to level " << _zeroChargeLevel << endl;
       while (true)
       {
         if (!waitDischarge && chrono::steady_clock::now() >= elapseAt)
           break;
 
-        if (m_mspControl.readWord(m_mspCmdChargeLevel) <= _zeroChargeLevel)
+        const unsigned currentChargeLevel = m_mspControl.readWord(m_mspCmdChargeLevel);
+        if (currentChargeLevel <= _zeroChargeLevel)
         {
-#if 1
-          cerr << "Discharged" << endl;
-#endif
+          cerr << "Discharged to level " << currentChargeLevel << ", target level " << _zeroChargeLevel << endl;
           break;
         }
 
         m_gpioDischargeControl.setValue(1);
         usleep(1000);
       }
-#if 1
-      cerr << "Discharge done" << endl;
-#endif
+
+      cerr << "Discharge done, current level " << m_mspControl.readWord(m_mspCmdChargeLevel)
+           << ", target level " << _zeroChargeLevel << endl;
       m_gpioDischargeControl.setValue(0);
     }
 
@@ -256,9 +250,13 @@ class TrikCoilGun
     {
       m_gpioChargeControl.setValue(0);
       usleep(_preDelayMs * 1000);
+
+      cerr << "Fire!" << endl;
       m_gpioDischargeControl.setValue(1);
       usleep(_durationMs * 1000);
-      m_gpioChargeControl.setValue(0);
+      m_gpioDischargeControl.setValue(0);
+      cerr << "Fire done" << endl;
+
       usleep(_postDelayMs * 1000);
     }
 
@@ -313,12 +311,12 @@ int main(int _argc, char* const _argv[])
   unsigned gpioDischargeCtrl = 0x00;
 
   unsigned chargeDurationMs = 0;
-  unsigned chargeLevel = 0x10;
+  unsigned chargeLevel = 0x200;
   unsigned firePreDelayMs = 10;
   unsigned fireDurationMs = 10;
   unsigned firePostDelayMs = 100;
   unsigned dischargeDurationMs = 0;
-  unsigned dischargeLevel = 0;
+  unsigned dischargeLevel = 0x5;
 
   while ((opt = getopt_long(_argc, _argv, s_optstring, s_longopts, &longopt)) != -1)
   {
