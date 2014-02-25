@@ -251,10 +251,10 @@ class TrikCoilGun
       m_gpioChargeControl.setValue(0);
       usleep(_preDelayMs * 1000);
 
-      const chrono::steady_clock::time_point& stopFireAt = chrono::steady_clock::now() + chrono::duration<chrono::steady_clock::rep, chrono::microseconds::period>(_durationUs);
       cerr << "Fire!" << endl;
+      const chrono::steady_clock::time_point stopFireAt = chrono::steady_clock::now() + chrono::duration<chrono::steady_clock::rep, chrono::microseconds::period>(_durationUs);
       m_gpioDischargeControl.setValue(1);
-      while (chrono::steady_clock::now() >= stopFireAt)
+      while (chrono::steady_clock::now() <= stopFireAt)
         ;
       m_gpioDischargeControl.setValue(0);
       cerr << "Fire done" << endl;
