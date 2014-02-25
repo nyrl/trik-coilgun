@@ -246,14 +246,16 @@ class TrikCoilGun
     }
 
 
-    void fire(unsigned _preDelayMs, unsigned _durationMs, unsigned _postDelayMs)
+    void fire(unsigned _preDelayMs, unsigned _durationUs, unsigned _postDelayMs)
     {
       m_gpioChargeControl.setValue(0);
       usleep(_preDelayMs * 1000);
 
+      const chrono::steady_clock::time_point& stopFireAt = chrono::steady_clock::now() + chrono::duration<chrono::steady_clock::rep, chrono::microseconds::period>(_durationUs);
       cerr << "Fire!" << endl;
       m_gpioDischargeControl.setValue(1);
-      usleep(_durationMs * 1000);
+      while (chrono::steady_clock::now() >= stopFireAt)
+        ;
       m_gpioDischargeControl.setValue(0);
       cerr << "Fire done" << endl;
 
@@ -294,8 +296,9 @@ int main(int _argc, char* const _argv[])
     { "charge-level",			required_argument,	NULL,	0},
     { "fire-predelay",			required_argument,	NULL,	0}, // 9
     { "fire-duration",			required_argument,	NULL,	0},
+    { "fire-duration-us",		required_argument,	NULL,	0},
     { "fire-postdelay",			required_argument,	NULL,	0},
-    { "discharge-duration",		required_argument,	NULL,	0}, // 12
+    { "discharge-duration",		required_argument,	NULL,	0}, // 13
     { "discharge-level",		required_argument,	NULL,	0},
     { NULL,				0,			NULL,	0},
   };
@@ -313,7 +316,7 @@ int main(int _argc, char* const _argv[])
   unsigned chargeDurationMs = 0;
   unsigned chargeLevel = 0x200;
   unsigned firePreDelayMs = 10;
-  unsigned fireDurationMs = 10;
+  unsigned fireDurationUs = 1000;
   unsigned firePostDelayMs = 100;
   unsigned dischargeDurationMs = 0;
   unsigned dischargeLevel = 0x5;
@@ -339,10 +342,11 @@ int main(int _argc, char* const _argv[])
           case 7:	chargeDurationMs	= atoi(optarg);	break;
           case 8:	chargeLevel		= atoi(optarg);	break;
           case 9:	firePreDelayMs		= atoi(optarg);	break;
-          case 10:	fireDurationMs		= atoi(optarg);	break;
-          case 11:	firePostDelayMs		= atoi(optarg);	break;
-          case 12:	dischargeDurationMs	= atoi(optarg);	break;
-          case 13:	dischargeLevel		= atoi(optarg);	break;
+          case 10:	fireDurationUs		= 1000*atoi(optarg);	break;
+          case 11:	fireDurationUs		= atoi(optarg);	break;
+          case 12:	firePostDelayMs		= atoi(optarg);	break;
+          case 13:	dischargeDurationMs	= atoi(optarg);	break;
+          case 14:	dischargeLevel		= atoi(optarg);	break;
           default:	return printUsageHelp();
         }
         break;
@@ -351,13 +355,13 @@ int main(int _argc, char* const _argv[])
   }
 
   cout << "Charge duration " << chargeDurationMs << "ms, level " << chargeLevel << endl;
-  cout << "Fire pre-delay " << firePreDelayMs << "ms, duration " << fireDurationMs << "ms, post-delay " << firePostDelayMs << "ms" << endl;
+  cout << "Fire pre-delay " << firePreDelayMs << "ms, duration " << fireDurationUs << "us, post-delay " << firePostDelayMs << "ms" << endl;
   cout << "Discharge duration " << dischargeDurationMs << "ms, level " << dischargeLevel << endl;
 
   TrikCoilGun coilGun(mspI2cBusId, mspI2cDeviceId, mspChargeLevelCmd, mspDischargeCurrentCmd, gpioChargeCtrl, gpioDischargeCtrl);
 
   coilGun.charge(chargeDurationMs, chargeLevel);
-  coilGun.fire(firePreDelayMs, fireDurationMs, firePostDelayMs);
+  coilGun.fire(firePreDelayMs, fireDurationUs, firePostDelayMs);
   coilGun.discharge(dischargeDurationMs, dischargeLevel);
 }
 
