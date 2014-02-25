@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <linux/i2c.h>
 #include <linux/i2c-dev.h>
 
 
@@ -65,29 +66,14 @@ class I2CDevice
       }
     }
 
-    template <typename UInt, size_t _bytes = sizeof(UInt)>
-    bool readUInt(UInt& _data)
+    int smbusAccess(uint8_t _readWrite, uint8_t _cmd, i2c_smbus_data& _data, size_t _bytes)
     {
-      uint8_t dataBuf[_bytes];
-      if (::read(m_i2cBus.fd(), dataBuf, sizeof(dataBuf)) != sizeof(dataBuf))
-        return false;
-
-      _data = UInt();
-      for (size_t idx = 0; idx < _bytes; ++idx)
-        _data |= static_cast<UInt>(dataBuf[idx]) << (idx*8);
-      return true;
-    }
-
-    template <typename UInt, size_t _bytes = sizeof(UInt)>
-    bool writeUInt(const UInt& _data)
-    {
-      uint8_t dataBuf[_bytes];
-      for (size_t idx = 0; idx < _bytes; ++idx)
-        dataBuf[idx] = static_cast<uint8_t>(_data >> (idx*8));
-
-      if (::write(m_i2cBus.fd(), dataBuf, sizeof(dataBuf)) != sizeof(dataBuf))
-        return false;
-      return true;
+      struct i2c_smbus_ioctl_data args;
+      args.read_write = _readWrite;
+      args.command = _cmd;
+      args.size = _bytes;
+      args.data = &_data;
+      return ioctl(m_i2cBus.fd(), I2C_SMBUS, &args);
     }
 
   private:
@@ -105,23 +91,16 @@ class MSPControl
 
     unsigned readWord(unsigned _addr)
     {
-      uint8_t addr = static_cast<uint8_t>(_addr);
-      if (!m_i2cDevice.writeUInt(addr))
+      i2c_smbus_data i2cData;
+      int res = m_i2cDevice.smbusAccess(I2C_SMBUS_READ, _addr, i2cData, I2C_SMBUS_WORD_DATA);
+      if (res != 0)
       {
         ostringstream os;
-        os << "cannot write cmd";
+        os << "failed ioctl(SMBUS_READ)";
         throw runtime_error(os.str());
       }
 
-      uint16_t result;
-      if (!m_i2cDevice.readUInt(result))
-      {
-        ostringstream os;
-        os << "cannot read result";
-        throw runtime_error(os.str());
-      }
-
-      return result;
+      return i2cData.word;
     }
 
   private:
@@ -330,8 +309,8 @@ int main(int _argc, char* const _argv[])
   unsigned mspI2cDeviceId = 0x48;
   unsigned mspChargeLevelCmd = 0x25;
   unsigned mspDischargeCurrentCmd = 0x24;
-  unsigned gpioChargeCtrl = 0;
-  unsigned gpioDischargeCtrl = 0;
+  unsigned gpioChargeCtrl = 0x17;
+  unsigned gpioDischargeCtrl = 0x00;
 
   unsigned chargeDurationMs = 0;
   unsigned chargeLevel = 0x10;
